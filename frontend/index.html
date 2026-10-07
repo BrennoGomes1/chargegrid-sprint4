@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChargeGrid Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papel:#E4EAEC; --painel:#F7F9FA; --tinta:#13242E; --suave:#56666F; --linha:#C3CDD2;
+  --eletrico:#1B47C9; --eletrico-claro:#DCE5FB; --ponta:#D98E04; --ponta-fundo:#F9E9C4;
+  --ok:#1E6F47; --erro:#A8261B;
+  --texto:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --numeros:"Barlow Condensed","Barlow",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);font:16px/1.5 var(--texto)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--eletrico);outline-offset:2px}
+.conteudo{max-width:1240px;margin:0 auto;padding:24px 24px 64px}
+
+/* Cabeçalho */
+.topo{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.topo h1{font:600 2.6rem/1 var(--numeros);margin:0;letter-spacing:-.01em}
+.topo p{margin:4px 0 0;color:var(--suave)}
+.conexao{display:flex;align-items:center;gap:8px;font-size:.95rem;color:var(--suave)}
+.conexao .luz{width:10px;height:10px;border-radius:50%;background:var(--linha)}
+.conexao.on .luz{background:var(--ok);box-shadow:0 0 0 4px #1e6f4722}
+.conexao.off .luz{background:var(--erro)}
+.conexao strong{color:var(--tinta);font-weight:600}
+
+/* Faixa de ocupação (elemento principal) */
+.faixa{background:var(--tinta);color:#E8EEF1;border-radius:6px;padding:18px 20px 14px;margin-bottom:24px}
+.faixa-cab{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.faixa-cab h2{font:500 1.25rem/1.2 var(--numeros);margin:0}
+.legenda{display:flex;gap:16px;font-size:.85rem;color:#AFC0C8}
+.legenda span::before{content:"";display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.legenda .l-fora::before{background:#6D8FF0}
+.legenda .l-ponta::before{background:var(--ponta)}
+.faixa-linha{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:10px;margin-bottom:6px}
+.faixa-rotulo{font:500 .95rem var(--numeros);color:#AFC0C8}
+.faixa-trilha{position:relative;height:28px;border-radius:3px;
+  background:linear-gradient(90deg,#1E3340 0 75%,#3A3320 75% 87.5%,#1E3340 87.5%)}
+.faixa-barra{position:absolute;top:3px;bottom:3px;background:#6D8FF0;border-radius:2px;
+  font:600 .75rem/22px var(--numeros);color:var(--tinta);padding-left:4px;overflow:hidden;white-space:nowrap}
+.faixa-barra.ponta{background:var(--ponta)}
+.faixa-barra.nova{animation:acende .9s ease-out}
+@keyframes acende{from{box-shadow:0 0 0 6px #ffffffaa}to{box-shadow:0 0 0 0 #fff0}}
+.faixa-escala{display:grid;grid-template-columns:56px 1fr;gap:10px;margin-top:4px}
+#faixa-horas{position:relative;height:18px;font:.8rem var(--numeros);color:#8FA3AD}
+#faixa-horas span{position:absolute;transform:translateX(-50%)}
+#faixa-horas span:first-child{transform:none}
+#faixa-horas span:last-child{transform:translateX(-100%)}
+
+/* Abas */
+.abas{display:flex;gap:4px;border-bottom:2px solid var(--linha);margin-bottom:20px;overflow-x:auto}
+.abas button{background:none;border:0;padding:10px 16px;font-weight:500;color:var(--suave);cursor:pointer;
+  border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.abas button[aria-selected="true"]{color:var(--tinta);border-bottom-color:var(--eletrico)}
+[role="tabpanel"][hidden]{display:none}
+
+/* Blocos */
+.bloco{background:var(--painel);border:1px solid var(--linha);border-radius:6px;padding:18px}
+.bloco h3{font:600 1.15rem/1.2 var(--numeros);margin:0 0 12px}
+.grade-sessoes{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+label{display:block;font-size:.9rem;font-weight:500;margin:10px 0 4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--linha);border-radius:4px;background:#fff}
+.dupla{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:inline-block;border:1px solid var(--tinta);background:var(--tinta);color:#fff;padding:9px 14px;
+  border-radius:4px;cursor:pointer;font-weight:500}
+.btn:hover{background:#24404F}
+.btn.sec{background:transparent;color:var(--tinta)}
+.btn.sec:hover{background:#fff}
+.btn.perigo{background:transparent;color:var(--erro);border-color:var(--erro)}
+.btn.largo{width:100%;margin-top:14px}
+.acoes-extra{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--linha)}
+.aviso{margin-top:12px;font-size:.92rem;min-height:1.4em}
+.aviso.ok{color:var(--ok)} .aviso.erro{color:var(--erro)}
+
+.ferramentas{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.ferramenta{min-width:0;border:1px solid var(--linha);border-radius:4px;padding:10px 12px;background:#fff}
+.ferramenta legend{font-weight:600;padding:0 4px}
+.ferramenta .linha-f{display:flex;gap:6px;margin-top:6px}
+.ferramenta .linha-f > *{flex:1;min-width:0}
+.ferramenta .btn{flex:0 0 auto;margin-top:8px;width:100%}
+fieldset{margin:0}
+
+.leitura{display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline;background:var(--eletrico-claro);
+  border-left:4px solid var(--eletrico);padding:10px 14px;margin-bottom:12px;font-size:.93rem}
+.leitura b{font:600 1.05rem var(--numeros)}
+.leitura .cx{font:600 1.25rem var(--numeros);color:var(--eletrico)}
+.leitura code{font-size:.82rem;color:var(--suave);background:none}
+.leitura.vazia{background:transparent;border-left-color:var(--linha);color:var(--suave)}
+
+.tabela-wrap{overflow-x:auto;border:1px solid var(--linha);border-radius:4px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #E3E8EA;white-space:nowrap}
+th{font-weight:600;background:#EEF2F4;position:sticky;top:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.vazio{text-align:center;color:var(--suave);padding:28px;white-space:normal}
+.selo{display:inline-block;padding:1px 8px;border-radius:10px;font-size:.82rem;background:#E7ECEE}
+.selo.ponta{background:var(--ponta-fundo);color:#7A4F00}
+.contagem{font-size:.88rem;color:var(--suave);margin:8px 2px 0}
+.topo-tabela{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+/* Estatísticas */
+.numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:2px solid var(--tinta);margin-bottom:24px}
+.numeros div{padding:14px 12px 10px 0;border-bottom:1px solid var(--linha)}
+.numeros dt{font-size:.88rem;color:var(--suave)}
+.numeros dd{margin:2px 0 0;font:600 2rem/1.1 var(--numeros);font-variant-numeric:tabular-nums}
+.barra-mini{height:8px;background:var(--eletrico);border-radius:2px;min-width:2px}
+.destaque{margin:0 0 20px;font-size:1rem}
+
+/* Relatório */
+.relatorio{white-space:pre-wrap;font:15px/1.6 var(--texto);background:#fff;border:1px solid var(--linha);
+  border-radius:4px;padding:16px 18px;margin:0 0 14px;max-width:72ch}
+
+/* Complexidade */
+.nota{max-width:72ch;color:var(--suave);margin:14px 0 0}
+.bench td small{display:block;color:var(--suave);font-size:.78rem}
+.bench th small{display:block;font-weight:500;color:var(--eletrico)}
+
+@media (max-width:980px){
+  .grade-sessoes{grid-template-columns:1fr}
+  .ferramentas{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="conteudo">
+  <header class="topo">
+    <div>
+      <h1>ChargeGrid Intelligence</h1>
+      <p>Gerenciamento de sessões de recarga de veículos elétricos</p>
+    </div>
+    <div class="conexao" id="conexao"><span class="luz"></span><span id="conexao-texto">Conectando ao backend Python…</span></div>
+  </header>
+
+  <section class="faixa" aria-labelledby="faixa-titulo">
+    <div class="faixa-cab">
+      <h2 id="faixa-titulo">Ocupação dos carregadores por horário</h2>
+      <div class="legenda"><span class="l-fora">Fora de ponta, R$ 1,20/kWh</span><span class="l-ponta">Ponta 18h às 21h, R$ 1,85/kWh</span></div>
+    </div>
+    <div id="faixa-trilhas"></div>
+    <div class="faixa-escala"><div></div><div id="faixa-horas"></div></div>
+  </section>
+
+  <nav class="abas" role="tablist">
+    <button role="tab" aria-selected="true" aria-controls="aba-sessoes" id="t-sessoes">Sessões</button>
+    <button role="tab" aria-selected="false" aria-controls="aba-estatisticas" id="t-estatisticas">Estatísticas</button>
+    <button role="tab" aria-selected="false" aria-controls="aba-relatorio" id="t-relatorio">Relatório</button>
+    <button role="tab" aria-selected="false" aria-controls="aba-complexidade" id="t-complexidade">Complexidade</button>
+  </nav>
+
+  <!-- SESSÕES -->
+  <section role="tabpanel" id="aba-sessoes" aria-labelledby="t-sessoes">
+    <div class="grade-sessoes">
+      <div class="bloco">
+        <h3>Nova sessão de recarga</h3>
+        <form id="form-sessao">
+          <div class="dupla">
+            <div><label for="f-carregador">Carregador</label>
+              <select id="f-carregador"><option>CG-01</option><option>CG-02</option><option>CG-03</option><option>CG-04</option></select></div>
+            <div><label for="f-placa">Placa</label><input id="f-placa" placeholder="ABC1D23" maxlength="8" required></div>
+          </div>
+          <label for="f-inicio">Início</label><input id="f-inicio" type="datetime-local" required>
+          <label for="f-fim">Fim</label><input id="f-fim" type="datetime-local" required>
+          <label for="f-energia">Energia entregue (kWh)</label><input id="f-energia" type="number" step="0.01" min="0.01" max="200" value="18.5" required>
+          <button class="btn largo" type="submit">Registrar sessão</button>
+        </form>
+        <p class="aviso" id="aviso-form" role="status"></p>
+        <div class="acoes-extra">
+          <button class="btn sec" id="btn-exemplo">Carregar 10 sessões de exemplo</button>
+          <button class="btn perigo" id="btn-limpar">Apagar todas as sessões</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="ferramentas">
+          <fieldset class="ferramenta">
+            <legend>Buscar por placa ou carregador</legend>
+            <div class="linha-f">
+              <select id="b-campo" aria-label="Campo da busca"><option value="placa">Placa</option><option value="carregador">Carregador</option></select>
+              <input id="b-valor" placeholder="ABC1D23" aria-label="Valor procurado">
+            </div>
+            <button class="btn" id="btn-buscar">Buscar</button>
+          </fieldset>
+          <fieldset class="ferramenta">
+            <legend>Buscar por ID</legend>
+            <div class="linha-f">
+              <input id="i-id" type="number" min="1" placeholder="ID" aria-label="ID da sessão">
+              <select id="i-metodo" aria-label="Método de busca">
+                <option value="linear">Linear</option><option value="binaria">Binária</option><option value="hash">Hash (dict)</option>
+              </select>
+            </div>
+            <button class="btn" id="btn-buscar-id">Buscar ID</button>
+          </fieldset>
+          <fieldset class="ferramenta">
+            <legend>Ordenar sessões</legend>
+            <div class="linha-f">
+              <select id="o-campo" aria-label="Campo de ordenação">
+                <option value="energia_kwh">Energia</option><option value="valor_total">Valor</option>
+                <option value="inicio">Início</option><option value="duracao_min">Duração</option><option value="placa">Placa</option>
+              </select>
+              <select id="o-ordem" aria-label="Ordem"><option value="desc">Decrescente</option><option value="asc">Crescente</option></select>
+            </div>
+            <div class="linha-f">
+              <select id="o-algoritmo" aria-label="Algoritmo"><option value="merge">Merge sort</option><option value="bubble">Bubble sort</option></select>
+            </div>
+            <button class="btn" id="btn-ordenar">Ordenar</button>
+          </fieldset>
+        </div>
+
+        <div class="leitura vazia" id="leitura">Faça uma busca ou ordenação para ver o algoritmo usado e quantas comparações o backend fez.</div>
+
+        <div class="topo-tabela">
+          <p class="contagem" id="contagem"></p>
+          <button class="btn sec" id="btn-todas">Mostrar todas</button>
+        </div>
+        <div class="tabela-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Carregador</th><th>Placa</th><th>Início</th><th>Fim</th>
+              <th class="num">Duração</th><th class="num">Energia</th><th>Horário</th><th class="num">Valor</th></tr></thead>
+            <tbody id="tabela-corpo"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ESTATÍSTICAS -->
+  <section role="tabpanel" id="aba-estatisticas" aria-labelledby="t-estatisticas" hidden>
+    <dl class="numeros" id="numeros"></dl>
+    <p class="destaque" id="maior-consumo"></p>
+    <div class="bloco">
+      <h3>Uso por carregador</h3>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Carregador</th><th class="num">Sessões</th><th class="num">Energia</th><th style="width:40%">Participação na energia</th><th class="num">Receita</th></tr></thead>
+          <tbody id="tabela-carregadores"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- RELATÓRIO -->
+  <section role="tabpanel" id="aba-relatorio" aria-labelledby="t-relatorio" hidden>
+    <div class="bloco">
+      <h3>Resumo final das recargas</h3>
+      <pre class="relatorio" id="relatorio-texto">Gerando relatório…</pre>
+      <button class="btn" id="btn-relatorio">Atualizar relatório</button>
+      <button class="btn sec" id="btn-copiar">Copiar texto</button>
+    </div>
+  </section>
+
+  <!-- COMPLEXIDADE -->
+  <section role="tabpanel" id="aba-complexidade" aria-labelledby="t-complexidade" hidden>
+    <div class="bloco">
+      <h3>Como o número de operações cresce com o número de sessões</h3>
+      <div class="dupla" style="max-width:520px;align-items:end">
+        <div><label for="bench-tamanhos">Quantidades de sessões (separadas por vírgula)</label>
+          <input id="bench-tamanhos" value="100, 500, 1000, 2000"></div>
+        <div><button class="btn" id="btn-bench">Comparar algoritmos</button></div>
+      </div>
+      <p class="aviso" id="aviso-bench" role="status"></p>
+      <div class="tabela-wrap bench">
+        <table>
+          <thead><tr><th>Sessões (n)</th>
+            <th class="num">Hash (dict)<small>O(1)</small></th>
+            <th class="num">Busca binária<small>O(log n)</small></th>
+            <th class="num">Busca linear<small>O(n)</small></th>
+            <th class="num">Merge sort<small>O(n log n)</small></th>
+            <th class="num">Bubble sort<small>O(n²)</small></th></tr></thead>
+          <tbody id="tabela-bench"><tr><td colspan="6" class="vazio">Clique em Comparar algoritmos para gerar listas de teste no backend e contar as comparações.</td></tr></tbody>
+        </table>
+      </div>
+      <p class="nota">Cada célula mostra quantas comparações o algoritmo fez e o tempo em milissegundos. A busca linear é medida no pior caso, procurando o último ID da lista. As listas são geradas no backend e não alteram as sessões cadastradas.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+const CARREGADORES = ['CG-01','CG-02','CG-03','CG-04'];
+let todas = [];
+let idNovo = null;
+
+const $ = s => document.querySelector(s);
+function el(tag, classe, texto){ const e=document.createElement(tag); if(classe) e.className=classe; if(texto!==undefined) e.textContent=texto; return e; }
+const moeda = v => Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const num = (v,c=2) => Number(v).toLocaleString('pt-BR',{minimumFractionDigits:c,maximumFractionDigits:c});
+const inteiro = v => Number(v).toLocaleString('pt-BR');
+const dataHora = iso => new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+function paraInput(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+// Toda comunicação com o backend Python passa por aqui
+async function api(caminho, opcoes={}){
+  const resp = await fetch('/api'+caminho, {headers:{'Content-Type':'application/json'}, ...opcoes});
+  let dados = null; try{ dados = await resp.json(); }catch(e){}
+  if(!resp.ok){
+    let msg = 'O backend respondeu com erro '+resp.status+'.';
+    if(dados && dados.detail) msg = Array.isArray(dados.detail) ? dados.detail.map(d=>d.msg).join('; ') : dados.detail;
+    throw new Error(msg);
+  }
+  return dados;
+}
+
+function statusConexao(ok, total){
+  const c=$('#conexao'); c.className='conexao '+(ok?'on':'off');
+  $('#conexao-texto').innerHTML = ok ? `Backend Python conectado, <strong>${total}</strong> sessões em memória`
+    : 'Backend offline. Rode <strong>uvicorn backend.main:app</strong> e recarregue a página';
+}
+
+async function atualizar(){
+  try{
+    const d = await api('/sessoes');
+    todas = d.sessoes;
+    statusConexao(true, d.total);
+    renderTabela(todas);
+    renderFaixa();
+  }catch(e){ statusConexao(false); }
+}
+
+function renderFaixa(){
+  const trilhas=$('#faixa-trilhas'); trilhas.innerHTML='';
+  CARREGADORES.forEach(c=>{
+    const linha=el('div','faixa-linha'); linha.append(el('span','faixa-rotulo',c));
+    const trilha=el('div','faixa-trilha');
+    todas.filter(s=>s.carregador===c).forEach(s=>{
+      const ini=new Date(s.inicio);
+      const a=ini.getHours()*60+ini.getMinutes();
+      const b=Math.min(a+s.duracao_min,1440);
+      const barra=el('div','faixa-barra'+(s.horario==='ponta'?' ponta':'')+(s.id===idNovo?' nova':''),'#'+s.id);
+      barra.style.left=(a/1440*100)+'%';
+      barra.style.width=Math.max((b-a)/1440*100,.8)+'%';
+      barra.title=`Sessão #${s.id}, ${s.placa}, ${dataHora(s.inicio)} até ${dataHora(s.fim)}, ${num(s.energia_kwh)} kWh, ${moeda(s.valor_total)}`;
+      trilha.append(barra);
+    });
+    linha.append(trilha); trilhas.append(linha);
+  });
+  idNovo=null;
+}
+(function escala(){
+  const horas=$('#faixa-horas');
+  for(let h=0;h<=24;h+=3){ const s=el('span',null,String(h).padStart(2,'0')+'h'); s.style.left=(h/24*100)+'%'; horas.append(s); }
+})();
+
+function renderTabela(lista){
+  const corpo=$('#tabela-corpo'); corpo.innerHTML='';
+  if(!lista.length){
+    const tr=el('tr'); const td=el('td','vazio', todas.length ? 'Nenhuma sessão encontrada. Confira o valor buscado ou clique em Mostrar todas.'
+      : 'Nenhuma sessão registrada ainda. Registre uma sessão no formulário ou carregue as sessões de exemplo.');
+    td.colSpan=9; tr.append(td); corpo.append(tr);
+  }
+  lista.forEach(s=>{
+    const tr=el('tr');
+    tr.append(el('td',null,'#'+s.id), el('td',null,s.carregador), el('td',null,s.placa),
+      el('td',null,dataHora(s.inicio)), el('td',null,dataHora(s.fim)),
+      el('td','num',s.duracao_min+' min'), el('td','num',num(s.energia_kwh)+' kWh'));
+    const tdH=el('td'); tdH.append(el('span','selo'+(s.horario==='ponta'?' ponta':''),s.horario)); tr.append(tdH);
+    tr.append(el('td','num',moeda(s.valor_total)));
+    corpo.append(tr);
+  });
+  $('#contagem').textContent = `Mostrando ${lista.length} de ${todas.length} sessões`;
+}
+
+function mostrarLeitura(d, rota){
+  const l=$('#leitura'); l.className='leitura'; l.innerHTML='';
+  const bloco=(rotulo,valor,classe)=>{ const s=el('span'); s.append(rotulo+' '); s.append(el('b',classe,valor)); return s; };
+  l.append(bloco('Algoritmo',d.algoritmo), bloco('Complexidade',d.complexidade,'cx'),
+    bloco('Comparações',inteiro(d.comparacoes)), bloco('Sessões (n)',inteiro(d.n)), el('code',null,rota));
+}
+
+// Formulário: POST /api/sessoes
+$('#form-sessao').addEventListener('submit', async ev=>{
+  ev.preventDefault();
+  const aviso=$('#aviso-form');
+  try{
+    const s = await api('/sessoes',{method:'POST', body:JSON.stringify({
+      carregador:$('#f-carregador').value, placa:$('#f-placa').value,
+      inicio:$('#f-inicio').value, fim:$('#f-fim').value, energia_kwh:parseFloat($('#f-energia').value)})});
+    aviso.className='aviso ok';
+    aviso.textContent=`Sessão #${s.id} registrada. ${num(s.energia_kwh)} kWh × ${moeda(s.tarifa_kwh)} (${s.horario}) + taxa ${moeda(s.taxa_conexao)} = ${moeda(s.valor_total)}`;
+    idNovo=s.id; $('#f-placa').value='';
+    await atualizar();
+  }catch(e){ aviso.className='aviso erro'; aviso.textContent=e.message; }
+});
+
+$('#btn-exemplo').onclick = async ()=>{ await api('/sessoes/exemplo?quantidade=10',{method:'POST'}); await atualizar(); };
+$('#btn-limpar').onclick = async ()=>{
+  if(!confirm('Apagar todas as sessões da memória do backend?')) return;
+  await api('/sessoes',{method:'DELETE'}); $('#leitura').className='leitura vazia'; await atualizar();
+};
+$('#btn-todas').onclick = async ()=>{ await atualizar(); };
+
+// Busca linear: GET /api/sessoes/busca
+$('#btn-buscar').onclick = async ()=>{
+  const campo=$('#b-campo').value, valor=$('#b-valor').value.trim();
+  if(!valor){ $('#b-valor').focus(); return; }
+  const q=new URLSearchParams({campo,valor});
+  try{ const d=await api('/sessoes/busca?'+q); renderTabela(d.sessoes); mostrarLeitura(d,'GET /api/sessoes/busca?'+q); }
+  catch(e){ alert(e.message); }
+};
+$('#b-valor').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#btn-buscar').click(); });
+
+// Busca por ID: GET /api/sessoes/busca-id
+$('#btn-buscar-id').onclick = async ()=>{
+  const id=$('#i-id').value; if(!id){ $('#i-id').focus(); return; }
+  const q=new URLSearchParams({id, metodo:$('#i-metodo').value});
+  try{ const d=await api('/sessoes/busca-id?'+q); renderTabela(d.sessoes); mostrarLeitura(d,'GET /api/sessoes/busca-id?'+q); }
+  catch(e){ alert(e.message); }
+};
+
+// Ordenação: GET /api/sessoes/ordenadas
+$('#btn-ordenar').onclick = async ()=>{
+  const q=new URLSearchParams({campo:$('#o-campo').value, ordem:$('#o-ordem').value, algoritmo:$('#o-algoritmo').value});
+  try{ const d=await api('/sessoes/ordenadas?'+q); renderTabela(d.sessoes); mostrarLeitura(d,'GET /api/sessoes/ordenadas?'+q); }
+  catch(e){ alert(e.message); }
+};
+
+// Estatísticas: GET /api/estatisticas
+async function carregarEstatisticas(){
+  const d=await api('/estatisticas');
+  const itens=[['Sessões',inteiro(d.total_sessoes)],['Energia entregue',num(d.energia_total_kwh,1)+' kWh'],
+    ['Receita total',moeda(d.receita_total)],['Consumo médio',num(d.energia_media_kwh,1)+' kWh'],
+    ['Duração média',d.duracao_media_min+' min'],['No horário de ponta',num(d.percentual_ponta,1)+'%']];
+  const dl=$('#numeros'); dl.innerHTML='';
+  itens.forEach(([r,v])=>{ const div=el('div'); div.append(el('dt',null,r), el('dd',null,v)); dl.append(div); });
+  const m=d.maior_consumo;
+  $('#maior-consumo').textContent = m ? `Maior consumo: sessão #${m.id}, placa ${m.placa}, no ${m.carregador}, com ${num(m.energia_kwh)} kWh (${moeda(m.valor_total)}).`
+    : 'Sem sessões registradas. Volte à aba Sessões para registrar ou carregar exemplos.';
+  const corpo=$('#tabela-carregadores'); corpo.innerHTML='';
+  Object.entries(d.por_carregador).forEach(([c,x])=>{
+    const tr=el('tr'); const pct=d.energia_total_kwh? x.energia_kwh/d.energia_total_kwh*100 : 0;
+    const tdBarra=el('td'); const barra=el('div','barra-mini'); barra.style.width=pct+'%'; tdBarra.append(barra);
+    tr.append(el('td',null,c), el('td','num',x.sessoes), el('td','num',num(x.energia_kwh)+' kWh'), tdBarra, el('td','num',moeda(x.receita)));
+    corpo.append(tr);
+  });
+}
+
+// Relatório: GET /api/relatorio
+async function carregarRelatorio(){ const d=await api('/relatorio'); $('#relatorio-texto').textContent=d.texto; }
+$('#btn-relatorio').onclick = carregarRelatorio;
+$('#btn-copiar').onclick = async ()=>{ try{ await navigator.clipboard.writeText($('#relatorio-texto').textContent); $('#btn-copiar').textContent='Texto copiado'; setTimeout(()=>$('#btn-copiar').textContent='Copiar texto',1600);}catch(e){} };
+
+// Benchmark: GET /api/benchmark
+$('#btn-bench').onclick = async ()=>{
+  const aviso=$('#aviso-bench'); aviso.className='aviso'; aviso.textContent='Executando no backend…';
+  const tamanhos=$('#bench-tamanhos').value.replace(/\s/g,'');
+  try{
+    const d=await api('/benchmark?tamanhos='+encodeURIComponent(tamanhos));
+    const corpo=$('#tabela-bench'); corpo.innerHTML='';
+    d.resultados.forEach(r=>{
+      const tr=el('tr'); tr.append(el('td',null,inteiro(r.n)));
+      ['busca_hash','busca_binaria','busca_linear','merge_sort','bubble_sort'].forEach(k=>{
+        const td=el('td','num',inteiro(r[k].comparacoes)); td.append(el('small',null,num(r[k].ms,3)+' ms')); tr.append(td);
+      });
+      corpo.append(tr);
+    });
+    aviso.textContent='';
+  }catch(e){ aviso.className='aviso erro'; aviso.textContent=e.message; }
+};
+
+// Abas
+document.querySelectorAll('[role="tab"]').forEach(tab=>{
+  tab.addEventListener('click', async ()=>{
+    document.querySelectorAll('[role="tab"]').forEach(t=>{
+      const ativo=t===tab; t.setAttribute('aria-selected',ativo);
+      document.getElementById(t.getAttribute('aria-controls')).hidden=!ativo;
+    });
+    try{
+      if(tab.id==='t-estatisticas') await carregarEstatisticas();
+      if(tab.id==='t-relatorio') await carregarRelatorio();
+    }catch(e){ statusConexao(false); }
+  });
+});
+
+// Valores iniciais do formulário
+(function(){ const agora=new Date(); agora.setSeconds(0,0); const fim=new Date(agora.getTime()+45*60000);
+  $('#f-inicio').value=paraInput(agora); $('#f-fim').value=paraInput(fim); })();
+atualizar();
+</script>
+</body>
+</html>
