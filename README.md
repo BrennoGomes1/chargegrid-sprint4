@@ -1,7 +1,7 @@
 # ChargeGrid Intelligence (Sprint 4)
 
-**Disciplina:** [NOME DA DISCIPLINA]  
-**Turma:** [TURMA]
+**Disciplina:** Data Structures and Algorithms  
+**Turma:** 1CCPX
 
 | Integrante | RM |
 |---|---|
